@@ -16,10 +16,10 @@ _LOGGER = logging.getLogger(__name__)
 # Platforms supported by this integration
 PLATFORMS: list[Platform] = [Platform.SWITCH]
 
-type iPIXELConfigEntry = ConfigEntry[iPIXELAPI]
+# Type alias for iPIXEL config entries
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: iPIXELConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up iPIXEL Color from a config entry."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
