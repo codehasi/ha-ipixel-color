@@ -27,7 +27,7 @@ async def async_setup_entry(
     
     api = hass.data[DOMAIN][entry.entry_id]
     
-    async_add_entities([iPIXELTextDisplay(api, entry, address, name)])
+    async_add_entities([iPIXELTextDisplay(hass, api, entry, address, name)])
 
 
 class iPIXELTextDisplay(TextEntity):
@@ -38,12 +38,14 @@ class iPIXELTextDisplay(TextEntity):
 
     def __init__(
         self, 
+        hass: HomeAssistant,
         api: iPIXELAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
     ) -> None:
         """Initialize the text display."""
+        self.hass = hass
         self._api = api
         self._entry = entry
         self._address = address
@@ -87,12 +89,18 @@ class iPIXELTextDisplay(TextEntity):
                 _LOGGER.debug("Reconnecting to device before displaying text")
                 await self._api.connect()
             
-            # Send text to display
-            success = await self._api.display_text(value)
+            # Get font settings from other entities
+            font_name = await self._get_font_setting()
+            font_size = await self._get_font_size_setting()
+            antialias = await self._get_antialiasing_setting()
+            
+            # Send text to display with settings
+            success = await self._api.display_text(value, antialias, font_size, font_name)
             
             if success:
                 self._current_text = value
-                _LOGGER.debug("Successfully displayed text: %s", value)
+                _LOGGER.debug("Successfully displayed text: %s (font: %s, size: %s, antialias: %s)", 
+                            value, font_name or "Default", font_size or "Auto", antialias)
             else:
                 _LOGGER.error("Failed to display text on iPIXEL")
                 
@@ -101,6 +109,42 @@ class iPIXELTextDisplay(TextEntity):
             # Don't set unavailable to allow retry
         except Exception as err:
             _LOGGER.error("Unexpected error while displaying text: %s", err)
+
+    async def _get_font_setting(self) -> str | None:
+        """Get the current font setting from the font select entity."""
+        try:
+            # Get the font select entity
+            entity_id = f"select.{self._name.lower().replace(' ', '_')}_font"
+            state = self.hass.states.get(entity_id)
+            if state and state.state != "Default":
+                return state.state
+        except Exception as err:
+            _LOGGER.debug("Could not get font setting: %s", err)
+        return None
+
+    async def _get_font_size_setting(self) -> int | None:
+        """Get the current font size setting from the number entity."""
+        try:
+            # Get the font size number entity
+            entity_id = f"number.{self._name.lower().replace(' ', '_')}_font_size"
+            state = self.hass.states.get(entity_id)
+            if state and state.state not in ("unknown", "unavailable", ""):
+                return int(float(state.state))
+        except Exception as err:
+            _LOGGER.debug("Could not get font size setting: %s", err)
+        return None
+
+    async def _get_antialiasing_setting(self) -> bool:
+        """Get the current antialiasing setting from the switch entity."""
+        try:
+            # Get the antialiasing switch entity
+            entity_id = f"switch.{self._name.lower().replace(' ', '_')}_antialiasing"
+            state = self.hass.states.get(entity_id)
+            if state:
+                return state.state == "on"
+        except Exception as err:
+            _LOGGER.debug("Could not get antialiasing setting: %s", err)
+        return True  # Default to antialiasing enabled
 
     async def async_update(self) -> None:
         """Update the entity state."""
