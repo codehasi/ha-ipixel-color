@@ -59,7 +59,7 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
         
         # Get available fonts from fonts/ folder
         self._attr_options = self._get_available_fonts()
-        self._attr_current_option = "Default" if "Default" in self._attr_options else self._attr_options[0]
+        self._attr_current_option = "OpenSans-Light.ttf" if "OpenSans-Light.ttf" in self._attr_options else self._attr_options[0]
         
         # Device info for grouping in device registry
         self._attr_device_info = DeviceInfo(
@@ -82,13 +82,14 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
 
     def _get_available_fonts(self) -> list[str]:
         """Get list of available fonts from fonts/ folder."""
-        fonts = ["Default"]  # Always include default option
+        fonts = ["OpenSans-Light.ttf"]  # Use OpenSans-Light as default
         
         # Look for fonts in the fonts/ directory
         fonts_dir = Path(__file__).parent / "fonts"
         if fonts_dir.exists():
             for font_file in fonts_dir.glob("*.ttf"):
-                fonts.append(font_file.name)
+                if font_file.name not in fonts:  # Avoid duplicates
+                    fonts.append(font_file.name)
             for font_file in fonts_dir.glob("*.otf"):
                 fonts.append(font_file.name)
         

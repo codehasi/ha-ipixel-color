@@ -118,8 +118,8 @@ async def _get_entity_setting(hass: HomeAssistant, device_name: str, platform: s
         elif value_type == int:
             return int(float(state.state))
         else:
-            # String value - return None for "Default" font
-            return None if setting == "font" and state.state == "Default" else state.state
+            # String value - return the font filename directly
+            return state.state
             
     except Exception as err:
         _LOGGER.debug("Could not get %s setting: %s", setting, err)
@@ -129,7 +129,7 @@ async def _get_entity_setting(hass: HomeAssistant, device_name: str, platform: s
 def _get_default_value(setting: str, value_type):
     """Get default value for a setting."""
     defaults = {
-        "font": None,
+        "font": "OpenSans-Light.ttf",
         "font_size": None,
         "line_spacing": 0,
         "antialiasing": True
